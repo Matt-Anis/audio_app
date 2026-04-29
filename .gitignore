@@ -43,3 +43,22 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Firebase & Secrets
+android/app/google-services.json
+ios/GoogleService-Info.plist
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+*.jks
+*.keystore
+*.p12
+
+# Build artifacts
+/build/
+/.dart_tool/
+/android/build/
+/ios/Pods/
+/macos/Pods/
