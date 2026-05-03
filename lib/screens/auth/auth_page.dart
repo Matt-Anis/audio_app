@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:audio_app/services/auth_service.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
 
 class AuthPage extends StatefulWidget {
@@ -135,35 +136,52 @@ class _AuthPageState extends State<AuthPage> {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 420),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(24),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-                child: Container(
-                  padding: const EdgeInsets.all(22),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: Colors.white.withOpacity(0.16)),
-                  ),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: Image.asset(
+              'images.jpg',
+              fit: BoxFit.cover,
+            ),
+          ),
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withOpacity(0.55),
+                    Colors.black.withOpacity(0.75),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 420),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Column(
                       children: [
+                        SvgPicture.asset(
+                          'icon.svg',
+                          height: 64,
+                          width: 64,
+                        ),
+                        const SizedBox(height: 12),
                         Text(
-                          'Audio App',
+                          'Listen without limits',
                           textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
                                 fontWeight: FontWeight.w700,
                               ),
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 6),
                         Text(
                           _isLogin ? 'Connexion' : 'Inscription',
                           textAlign: TextAlign.center,
@@ -172,119 +190,141 @@ class _AuthPageState extends State<AuthPage> {
                               .bodyMedium
                               ?.copyWith(color: colorScheme.onSurface.withOpacity(0.7)),
                         ),
-                        const SizedBox(height: 22),
-                        if (!_isLogin) ...[
-                          TextFormField(
-                            controller: _firstNameController,
-                            decoration: _inputDecoration('Prenom'),
-                            validator: (value) {
-                              if (!_isLogin && (value == null || value.trim().isEmpty)) {
-                                return 'Prenom obligatoire';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 12),
-                          TextFormField(
-                            controller: _lastNameController,
-                            decoration: _inputDecoration('Nom'),
-                            validator: (value) {
-                              if (!_isLogin && (value == null || value.trim().isEmpty)) {
-                                return 'Nom obligatoire';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 12),
-                          OutlinedButton(
-                            onPressed: _pickBirthDate,
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: colorScheme.onSurface,
-                              side: BorderSide(color: Colors.white.withOpacity(0.2)),
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                            ),
-                            child: Text(birthDateText),
-                          ),
-                          const SizedBox(height: 12),
-                        ],
-                        TextFormField(
-                          controller: _emailController,
-                          keyboardType: TextInputType.emailAddress,
-                          decoration: _inputDecoration('Email'),
-                          validator: (value) {
-                            if (value == null || value.trim().isEmpty) {
-                              return 'Email obligatoire';
-                            }
-                            if (!value.contains('@')) {
-                              return 'Email invalide';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 12),
-                        TextFormField(
-                          controller: _passwordController,
-                          obscureText: true,
-                          decoration: _inputDecoration('Mot de passe'),
-                          validator: (value) {
-                            if (value == null || value.trim().isEmpty) {
-                              return 'Mot de passe obligatoire';
-                            }
-                            if (value.length < 6) {
-                              return 'Minimum 6 caracteres';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 16),
-                        ElevatedButton(
-                          onPressed: _isLoading ? null : _submit,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: colorScheme.primary,
-                            foregroundColor: Colors.black,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                          ),
-                          child: _isLoading
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
-                                )
-                              : Text(_isLogin ? 'Se connecter' : 'Creer un compte'),
-                        ),
-                        const SizedBox(height: 8),
-                        if (_isLogin)
-                          TextButton(
-                            onPressed: _resetPassword,
-                            child: const Text('Mot de passe oublie ?'),
-                          ),
-                        TextButton(
-                          onPressed: () {
-                            setState(() {
-                              _isLogin = !_isLogin;
-                            });
-                          },
-                          child: Text(
-                            _isLogin
-                                ? 'Pas de compte ? Inscription'
-                                : 'Deja un compte ? Connexion',
-                          ),
-                        ),
                       ],
                     ),
-                  ),
+                    const SizedBox(height: 20),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(24),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+                        child: Container(
+                          padding: const EdgeInsets.all(22),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(color: Colors.white.withOpacity(0.16)),
+                          ),
+                          child: Form(
+                            key: _formKey,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                if (!_isLogin) ...[
+                                  TextFormField(
+                                    controller: _firstNameController,
+                                    decoration: _inputDecoration('Prenom'),
+                                    validator: (value) {
+                                      if (!_isLogin && (value == null || value.trim().isEmpty)) {
+                                        return 'Prenom obligatoire';
+                                      }
+                                      return null;
+                                    },
+                                  ),
+                                  const SizedBox(height: 12),
+                                  TextFormField(
+                                    controller: _lastNameController,
+                                    decoration: _inputDecoration('Nom'),
+                                    validator: (value) {
+                                      if (!_isLogin && (value == null || value.trim().isEmpty)) {
+                                        return 'Nom obligatoire';
+                                      }
+                                      return null;
+                                    },
+                                  ),
+                                  const SizedBox(height: 12),
+                                  OutlinedButton(
+                                    onPressed: _pickBirthDate,
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: colorScheme.onSurface,
+                                      side: BorderSide(color: Colors.white.withOpacity(0.2)),
+                                      padding: const EdgeInsets.symmetric(vertical: 14),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(14),
+                                      ),
+                                    ),
+                                    child: Text(birthDateText),
+                                  ),
+                                  const SizedBox(height: 12),
+                                ],
+                                TextFormField(
+                                  controller: _emailController,
+                                  keyboardType: TextInputType.emailAddress,
+                                  decoration: _inputDecoration('Email'),
+                                  validator: (value) {
+                                    if (value == null || value.trim().isEmpty) {
+                                      return 'Email obligatoire';
+                                    }
+                                    if (!value.contains('@')) {
+                                      return 'Email invalide';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                                const SizedBox(height: 12),
+                                TextFormField(
+                                  controller: _passwordController,
+                                  obscureText: true,
+                                  decoration: _inputDecoration('Mot de passe'),
+                                  validator: (value) {
+                                    if (value == null || value.trim().isEmpty) {
+                                      return 'Mot de passe obligatoire';
+                                    }
+                                    if (value.length < 6) {
+                                      return 'Minimum 6 caracteres';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                                const SizedBox(height: 16),
+                                ElevatedButton(
+                                  onPressed: _isLoading ? null : _submit,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: colorScheme.primary,
+                                    foregroundColor: Colors.black,
+                                    padding: const EdgeInsets.symmetric(vertical: 14),
+                                    elevation: 0,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(14),
+                                    ),
+                                  ),
+                                  child: _isLoading
+                                      ? const SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(strokeWidth: 2),
+                                        )
+                                      : Text(_isLogin ? 'Se connecter' : 'Creer un compte'),
+                                ),
+                                const SizedBox(height: 8),
+                                if (_isLogin)
+                                  TextButton(
+                                    onPressed: _resetPassword,
+                                    child: const Text('Mot de passe oublie ?'),
+                                  ),
+                                TextButton(
+                                  onPressed: () {
+                                    setState(() {
+                                      _isLogin = !_isLogin;
+                                    });
+                                  },
+                                  child: Text(
+                                    _isLogin
+                                        ? 'Pas de compte ? Inscription'
+                                        : 'Deja un compte ? Connexion',
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }

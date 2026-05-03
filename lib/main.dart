@@ -5,6 +5,7 @@ import 'package:audio_app/services/biometric_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:just_audio_background/just_audio_background.dart';
 import 'package:audio_service/audio_service.dart';
@@ -136,7 +137,7 @@ class MainApp extends StatelessWidget {
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Audio App',
+      title: 'biPi',
       theme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.dark,
@@ -238,20 +239,43 @@ class StartupGate extends StatefulWidget {
   State<StartupGate> createState() => _StartupGateState();
 }
 
-class _StartupGateState extends State<StartupGate> {
+class _StartupGateState extends State<StartupGate> with WidgetsBindingObserver {
   final _biometricService = BiometricService();
 
   bool _loading = true;
   bool _transitioning = false;
   String? _error;
+  bool _authInProgress = false;
+  bool _sessionAuthenticated = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _runMandatoryBiometricFlow();
   }
 
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      if (!_sessionAuthenticated) {
+        _runMandatoryBiometricFlow();
+      }
+    } else if (state == AppLifecycleState.paused) {
+      // Require auth again when returning to the app.
+      _sessionAuthenticated = false;
+    }
+  }
+
   Future<void> _runMandatoryBiometricFlow() async {
+    if (_authInProgress) return;
+    _authInProgress = true;
     print('=== StartupGate: Starting biometric flow ===');
     setState(() {
       _loading = true;
@@ -259,18 +283,6 @@ class _StartupGateState extends State<StartupGate> {
     });
 
     try {
-      final alreadyDone = await _biometricService.isFirstLaunchValidated();
-      print('DEBUG: alreadyDone=$alreadyDone');
-      
-      if (alreadyDone) {
-        print('DEBUG: First launch already validated, skipping biometric');
-        if (!mounted) return;
-        setState(() {
-          _loading = false;
-        });
-        return;
-      }
-
       print('DEBUG: Checking if biometric is configured...');
       final hasEnrolledBiometric = await _biometricService.hasBiometricConfigured();
       print('DEBUG: hasEnrolledBiometric=$hasEnrolledBiometric');
@@ -293,7 +305,7 @@ class _StartupGateState extends State<StartupGate> {
 
       print('DEBUG: Authentication result=$success');
       if (success) {
-        await _biometricService.markFirstLaunchValidated();
+        _sessionAuthenticated = true;
         if (!mounted) return;
         setState(() {
           _loading = false;
@@ -312,14 +324,35 @@ class _StartupGateState extends State<StartupGate> {
         _loading = false;
         _error = 'Erreur biométrique: $e. Appuyez sur "Passer" pour continuer.';
       });
+    } finally {
+      _authInProgress = false;
     }
   }
 
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator(color: Color(0xFF1DB954))),
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SvgPicture.asset(
+                'icon.svg',
+                height: 120,
+                width: 120,
+              ),
+              const SizedBox(height: 18),
+              Text(
+                'biPi',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.4,
+                    ),
+              ),
+            ],
+          ),
+        ),
       );
     }
 

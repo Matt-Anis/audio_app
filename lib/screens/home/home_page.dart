@@ -4,6 +4,7 @@ import 'package:audio_app/screens/home/stats_tab.dart';
 import 'package:audio_app/services/auth_service.dart';
 import 'package:audio_app/utils/dialog_helper.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'dart:developer' as developer;
 
 class HomePage extends StatefulWidget {
@@ -60,7 +61,11 @@ class _HomePageState extends State<HomePage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Audio App'),
+        title: SvgPicture.asset(
+          'icon.svg',
+          height: 28,
+          width: 28,
+        ),
         actions: [
           IconButton(
             onPressed: _handleLogout,
