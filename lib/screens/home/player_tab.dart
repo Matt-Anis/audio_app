@@ -29,10 +29,13 @@ class _PlayerTabState extends State<PlayerTab> {
   final _playerService = AudioPlayerService();
   final _favoritesService = FavoritesService();
   final _statsService = LocalStatsService();
+  final _searchController = TextEditingController();
+  Timer? _searchTimer;
 
   bool _loading = true;
   String? _error;
   Map<String, List<AudioTrack>> _catalog = {};
+  _LibraryViewMode _viewMode = _LibraryViewMode.titles;
 
   AudioTrack? _currentTrack;
   bool _isCurrentFavorite = false;
@@ -43,14 +46,17 @@ class _PlayerTabState extends State<PlayerTab> {
     _loadCatalog();
   }
 
-  Future<void> _loadCatalog() async {
+  Future<void> _loadCatalog({String? query}) async {
     setState(() {
       _loading = true;
       _error = null;
     });
 
     try {
-      final data = await _catalogService.fetchTracksByCategory();
+      final rawQuery = query ?? _searchController.text;
+      final data = rawQuery.trim().isEmpty
+          ? await _catalogService.fetchTracksByCategory()
+          : await _catalogService.fetchTracksByCategory(query: rawQuery);
       if (data.isEmpty) {
         throw Exception('Catalogue indisponible pour le moment.');
       }
@@ -135,8 +141,17 @@ class _PlayerTabState extends State<PlayerTab> {
 
   @override
   void dispose() {
+    _searchTimer?.cancel();
+    _searchController.dispose();
     _playerService.dispose();
     super.dispose();
+  }
+
+  void _onSearchChanged(String value) {
+    _searchTimer?.cancel();
+    _searchTimer = Timer(const Duration(milliseconds: 350), () {
+      _loadCatalog(query: value);
+    });
   }
 
   String _formatDuration(Duration duration) {
@@ -204,6 +219,26 @@ class _PlayerTabState extends State<PlayerTab> {
 
     final colorScheme = Theme.of(context).colorScheme;
 
+    final allTracks = _catalog.values.expand((e) => e).toList();
+    final query = _searchController.text.trim().toLowerCase();
+    final filteredTracks = query.isEmpty
+        ? allTracks
+        : allTracks
+            .where(
+              (track) =>
+                  track.title.toLowerCase().contains(query) ||
+                  track.category.toLowerCase().contains(query),
+            )
+            .toList();
+
+    final groupedByArtist = <String, List<AudioTrack>>{};
+    for (final track in filteredTracks) {
+      groupedByArtist.putIfAbsent(track.category, () => <AudioTrack>[]).add(track);
+    }
+    for (final list in groupedByArtist.values) {
+      list.sort((a, b) => a.title.compareTo(b.title));
+    }
+
     return Column(
       children: [
         Expanded(
@@ -220,45 +255,116 @@ class _PlayerTabState extends State<PlayerTab> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Recitations organisees par type de sourate.',
+                  'Recherchez par titre, artiste ou couverture.',
                   style: Theme.of(context)
                       .textTheme
                       .bodyMedium
                       ?.copyWith(color: colorScheme.onSurface.withOpacity(0.7)),
                 ),
                 const SizedBox(height: 16),
-                ..._catalog.entries.map(
-                  (entry) => Container(
-                    margin: const EdgeInsets.only(bottom: 12),
+                TextField(
+                  controller: _searchController,
+                  onChanged: _onSearchChanged,
+                  decoration: const InputDecoration(
+                    hintText: 'Rechercher un titre ou un artiste',
+                    prefixIcon: Icon(Icons.search),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SegmentedButton<_LibraryViewMode>(
+                  segments: const [
+                    ButtonSegment(
+                      value: _LibraryViewMode.titles,
+                      label: Text('Titres'),
+                      icon: Icon(Icons.list_alt),
+                    ),
+                    ButtonSegment(
+                      value: _LibraryViewMode.covers,
+                      label: Text('Covers'),
+                      icon: Icon(Icons.grid_view),
+                    ),
+                    ButtonSegment(
+                      value: _LibraryViewMode.authors,
+                      label: Text('Artistes'),
+                      icon: Icon(Icons.person),
+                    ),
+                  ],
+                  selected: {_viewMode},
+                  onSelectionChanged: (value) {
+                    setState(() {
+                      _viewMode = value.first;
+                    });
+                  },
+                ),
+                const SizedBox(height: 16),
+                if (filteredTracks.isEmpty)
+                  Container(
+                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.08),
                       borderRadius: BorderRadius.circular(18),
                       border: Border.all(color: Colors.white.withOpacity(0.12)),
                     ),
-                    child: ExpansionTile(
-                      collapsedIconColor: colorScheme.onSurface,
-                      iconColor: colorScheme.primary,
-                      title: Text(
-                        entry.key,
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
+                    child: const Text('Aucun resultat pour cette recherche.'),
+                  )
+                else if (_viewMode == _LibraryViewMode.covers)
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                      childAspectRatio: 0.78,
+                    ),
+                    itemCount: filteredTracks.length,
+                    itemBuilder: (context, index) {
+                      final track = filteredTracks[index];
+                      return _CoverCard(
+                        track: track,
+                        onPlay: () => _playTrack(track),
+                      );
+                    },
+                  )
+                else if (_viewMode == _LibraryViewMode.authors)
+                  ...groupedByArtist.entries.map(
+                    (entry) => Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: Colors.white.withOpacity(0.12)),
                       ),
-                      children: entry.value
-                          .map(
-                            (track) => ListTile(
-                              title: Text(track.title),
-                              subtitle: Text(track.category),
-                              trailing: IconButton(
-                                onPressed: () => _playTrack(track),
-                                icon: Icon(Icons.play_circle_fill, color: colorScheme.primary),
+                      child: ExpansionTile(
+                        collapsedIconColor: colorScheme.onSurface,
+                        iconColor: colorScheme.primary,
+                        title: Text(
+                          entry.key,
+                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w600,
                               ),
-                            ),
-                          )
-                          .toList(),
+                        ),
+                        children: entry.value
+                            .map(
+                              (track) => _TrackBadge(
+                                track: track,
+                                onPlay: () => _playTrack(track),
+                              ),
+                            )
+                            .toList(),
+                      ),
+                    ),
+                  )
+                else
+                  ...filteredTracks.map(
+                    (track) => Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: _TrackBadge(
+                        track: track,
+                        onPlay: () => _playTrack(track),
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
           ),
@@ -312,6 +418,8 @@ class _MiniPlayerBar extends StatelessWidget {
         children: [
           Row(
             children: [
+              _ArtworkThumb(url: track.artwork, size: 44),
+              const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -488,6 +596,31 @@ class _NowPlayingSheet extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 12),
+              if (track.artwork != null)
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: AspectRatio(
+                    aspectRatio: 1,
+                    child: Image.network(
+                      track.artwork!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(
+                        color: Colors.white.withOpacity(0.08),
+                        child: const Icon(Icons.music_note, size: 48),
+                      ),
+                    ),
+                  ),
+                )
+              else
+                Container(
+                  height: 220,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Icon(Icons.music_note, size: 48),
+                ),
+              const SizedBox(height: 16),
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -578,4 +711,167 @@ class _NowPlayingSheet extends StatelessWidget {
       },
     );
   }
+}
+
+class _ArtworkThumb extends StatelessWidget {
+  final String? url;
+  final double size;
+
+  const _ArtworkThumb({required this.url, required this.size});
+
+  @override
+  Widget build(BuildContext context) {
+    if (url == null) {
+      return Container(
+        height: size,
+        width: size,
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: const Icon(Icons.music_note, size: 18),
+      );
+    }
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: Image.network(
+        url!,
+        height: size,
+        width: size,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => Container(
+          height: size,
+          width: size,
+          color: Colors.white.withOpacity(0.08),
+          child: const Icon(Icons.music_note, size: 18),
+        ),
+      ),
+    );
+  }
+}
+
+class _TrackBadge extends StatelessWidget {
+  final AudioTrack track;
+  final VoidCallback onPlay;
+
+  const _TrackBadge({required this.track, required this.onPlay});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return InkWell(
+      onTap: onPlay,
+      borderRadius: BorderRadius.circular(18),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: Colors.white.withOpacity(0.12)),
+        ),
+        child: Row(
+          children: [
+            _ArtworkThumb(url: track.artwork, size: 44),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    track.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(track.category, style: Theme.of(context).textTheme.bodySmall),
+                ],
+              ),
+            ),
+            IconButton(
+              onPressed: onPlay,
+              icon: Icon(Icons.play_circle_fill, color: colorScheme.primary),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CoverCard extends StatelessWidget {
+  final AudioTrack track;
+  final VoidCallback onPlay;
+
+  const _CoverCard({required this.track, required this.onPlay});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return InkWell(
+      onTap: onPlay,
+      borderRadius: BorderRadius.circular(18),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: Colors.white.withOpacity(0.12)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: track.artwork == null
+                    ? Container(
+                        color: Colors.white.withOpacity(0.08),
+                        child: const Icon(Icons.music_note, size: 36),
+                      )
+                    : Image.network(
+                        track.artwork!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(
+                          color: Colors.white.withOpacity(0.08),
+                          child: const Icon(Icons.music_note, size: 36),
+                        ),
+                      ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              track.title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              track.category,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 6),
+            Align(
+              alignment: Alignment.centerRight,
+              child: Icon(Icons.play_circle_fill, color: colorScheme.primary),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+enum _LibraryViewMode {
+  titles,
+  covers,
+  authors,
 }
