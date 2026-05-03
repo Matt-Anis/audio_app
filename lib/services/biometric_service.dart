@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:developer' as developer;
 
 import 'package:android_intent_plus/android_intent.dart';
 import 'package:flutter/services.dart';
@@ -22,12 +23,21 @@ class BiometricService {
   Future<bool> hasBiometricConfigured() async {
     final canCheck = await _localAuth.canCheckBiometrics;
     final supported = await _localAuth.isDeviceSupported();
-    if (!canCheck || !supported) return false;
+    developer.log('BiometricService: canCheckBiometrics=$canCheck, isDeviceSupported=$supported');
+    
+    if (!canCheck || !supported) {
+      developer.log('BiometricService: Device does not support biometrics');
+      return false;
+    }
 
     final available = await _localAuth.getAvailableBiometrics();
-    return available.contains(BiometricType.fingerprint) ||
+    developer.log('BiometricService: Available biometrics: $available');
+    
+    final result = available.contains(BiometricType.fingerprint) ||
         available.contains(BiometricType.strong) ||
         available.contains(BiometricType.weak);
+    developer.log('BiometricService: hasBiometric=$result');
+    return result;
   }
 
   Future<void> openSecuritySettings() async {
