@@ -163,6 +163,7 @@ class _StartupGateState extends State<StartupGate> {
   final _biometricService = BiometricService();
 
   bool _loading = true;
+  bool _transitioning = false;
   String? _error;
 
   @override
@@ -172,50 +173,65 @@ class _StartupGateState extends State<StartupGate> {
   }
 
   Future<void> _runMandatoryBiometricFlow() async {
+    print('=== StartupGate: Starting biometric flow ===');
     setState(() {
       _loading = true;
       _error = null;
     });
 
-    final alreadyDone = await _biometricService.isFirstLaunchValidated();
-    developer.log('StartupGate: alreadyDone=$alreadyDone');
-    
-    if (alreadyDone) {
-      if (!mounted) return;
-      setState(() {
-        _loading = false;
-      });
-      return;
-    }
+    try {
+      final alreadyDone = await _biometricService.isFirstLaunchValidated();
+      print('DEBUG: alreadyDone=$alreadyDone');
+      
+      if (alreadyDone) {
+        print('DEBUG: First launch already validated, skipping biometric');
+        if (!mounted) return;
+        setState(() {
+          _loading = false;
+        });
+        return;
+      }
 
-    final hasEnrolledBiometric = await _biometricService.hasBiometricConfigured();
-    developer.log('StartupGate: hasEnrolledBiometric=$hasEnrolledBiometric');
-    
-    if (!hasEnrolledBiometric) {
-      if (!mounted) return;
-      setState(() {
-        _loading = false;
-        _error =
-            'Empreinte digitale non configurée. Ouvrez vos paramètres de sécurité pour en ajouter une, ou appuyez sur "Passer".';
-      });
-      return;
-    }
+      print('DEBUG: Checking if biometric is configured...');
+      final hasEnrolledBiometric = await _biometricService.hasBiometricConfigured();
+      print('DEBUG: hasEnrolledBiometric=$hasEnrolledBiometric');
+      
+      if (!hasEnrolledBiometric) {
+        print('DEBUG: No biometric configured, showing error');
+        if (!mounted) return;
+        setState(() {
+          _loading = false;
+          _error =
+              'Biométrique non configuré. Configurez une empreinte digitale dans les paramètres de sécurité pour continuer, ou appuyez sur "Passer".';
+        });
+        return;
+      }
 
-    final success = await _biometricService.authenticate(
-      reason: 'Authentifiez-vous avec votre empreinte pour continuer.',
-    );
+      print('DEBUG: Biometric configured, starting authentication...');
+      final success = await _biometricService.authenticate(
+        reason: 'Authentifiez-vous avec votre empreinte pour continuer.',
+      );
 
-    if (success) {
-      await _biometricService.markFirstLaunchValidated();
+      print('DEBUG: Authentication result=$success');
+      if (success) {
+        await _biometricService.markFirstLaunchValidated();
+        if (!mounted) return;
+        setState(() {
+          _loading = false;
+        });
+      } else {
+        if (!mounted) return;
+        setState(() {
+          _loading = false;
+          _error = 'Authentification échouée. Veuillez réessayer ou appuyez sur "Passer".';
+        });
+      }
+    } catch (e) {
+      print('ERROR in biometric flow: $e');
       if (!mounted) return;
       setState(() {
         _loading = false;
-      });
-    } else {
-      if (!mounted) return;
-      setState(() {
-        _loading = false;
-        _error = 'Authentification echouee. L\'empreinte est obligatoire.';
+        _error = 'Erreur biométrique: $e. Appuyez sur "Passer" pour continuer.';
       });
     }
   }
@@ -244,33 +260,28 @@ class _StartupGateState extends State<StartupGate> {
                   style: const TextStyle(color: Colors.white),
                 ),
                 const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () {
-                          setState(() {
-                            _loading = false;
-                            _error = null;
-                          });
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.transparent,
-                          side: const BorderSide(color: Color(0xFF1DB954)),
-                        ),
-                        child: const Text('Passer', style: TextStyle(color: Color(0xFF1DB954))),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: _runMandatoryBiometricFlow,
-                        style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1DB954)),
-                        child: const Text('Reessayer', style: TextStyle(color: Colors.black)),
-                      ),
-                    ),
-                  ],
+                ElevatedButton(
+                  onPressed: _transitioning ? null : () {
+                    setState(() {
+                      _transitioning = true;
+                    });
+                    Future.microtask(() {
+                      if (mounted) {
+                        setState(() {
+                          _loading = false;
+                          _error = null;
+                        });
+                      }
+                    });
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1DB954),
+                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                  ),
+                  child: const Text(
+                    'Passer',
+                    style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                  ),
                 ),
               ],
             ),

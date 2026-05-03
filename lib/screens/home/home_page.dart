@@ -2,7 +2,9 @@ import 'package:audio_app/screens/home/favorites_tab.dart';
 import 'package:audio_app/screens/home/player_tab.dart';
 import 'package:audio_app/screens/home/stats_tab.dart';
 import 'package:audio_app/services/auth_service.dart';
+import 'package:audio_app/utils/dialog_helper.dart';
 import 'package:flutter/material.dart';
+import 'dart:developer' as developer;
 
 class HomePage extends StatefulWidget {
   final String uid;
@@ -24,6 +26,30 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  Future<void> _handleLogout() async {
+    final confirmed = await DialogHelper.showConfirmDialog(
+      context,
+      title: 'Déconnexion',
+      message: 'Êtes-vous sûr de vouloir vous déconnecter ?',
+      confirmText: 'Déconnecter',
+      cancelText: 'Annuler',
+    );
+    
+    if (confirmed == true) {
+      try {
+        await _authService.logout();
+      } catch (e) {
+        developer.log('Error during logout: $e');
+        if (!mounted) return;
+        await DialogHelper.showErrorDialog(
+          context,
+          title: 'Erreur',
+          message: 'Erreur lors de la déconnexion: $e',
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final pages = [
@@ -37,7 +63,7 @@ class _HomePageState extends State<HomePage> {
         title: const Text('Audio App'),
         actions: [
           IconButton(
-            onPressed: _authService.logout,
+            onPressed: _handleLogout,
             icon: const Icon(Icons.logout),
           ),
         ],

@@ -1,6 +1,8 @@
 import 'package:audio_app/services/biometric_service.dart';
 import 'package:audio_app/services/favorites_service.dart';
+import 'package:audio_app/utils/dialog_helper.dart';
 import 'package:flutter/material.dart';
+import 'dart:developer' as developer;
 
 class FavoritesTab extends StatefulWidget {
   final String uid;
@@ -22,13 +24,31 @@ class _FavoritesTabState extends State<FavoritesTab> {
 
     if (!ok) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Suppression annulee: empreinte requise.')),
+      await DialogHelper.showErrorDialog(
+        context,
+        title: 'Authentification échouée',
+        message: 'Vous devez vous authentifier pour supprimer un favori.',
       );
       return;
     }
 
-    await _favoritesService.removeFavorite(widget.uid, trackId);
+    try {
+      await _favoritesService.removeFavorite(widget.uid, trackId);
+      if (!mounted) return;
+      await DialogHelper.showSuccessDialog(
+        context,
+        title: 'Succès',
+        message: 'Favori supprimé avec succès.',
+      );
+    } catch (e) {
+      developer.log('Error deleting favorite: $e');
+      if (!mounted) return;
+      await DialogHelper.showErrorDialog(
+        context,
+        title: 'Erreur',
+        message: 'Erreur lors de la suppression du favori: $e',
+      );
+    }
   }
 
   @override
@@ -42,9 +62,28 @@ class _FavoritesTabState extends State<FavoritesTab> {
 
         if (snapshot.hasError) {
           return Center(
-            child: Text(
-              'Erreur: ${snapshot.error}',
-              style: const TextStyle(color: Colors.white),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.error_outline, size: 64, color: Colors.redAccent),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Erreur: ${snapshot.error}',
+                    style: const TextStyle(color: Colors.white),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () => setState(() {}),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF1DB954),
+                    ),
+                    child: const Text('Réessayer'),
+                  ),
+                ],
+              ),
             ),
           );
         }

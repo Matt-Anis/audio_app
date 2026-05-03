@@ -2,7 +2,9 @@ import 'dart:math';
 
 import 'package:audio_app/services/auth_service.dart';
 import 'package:audio_app/services/local_stats_service.dart';
+import 'package:audio_app/utils/dialog_helper.dart';
 import 'package:flutter/material.dart';
+import 'dart:developer' as developer;
 
 class StatsTab extends StatefulWidget {
   final String uid;
@@ -31,25 +33,38 @@ class _StatsTabState extends State<StatsTab> {
   }
 
   Future<void> _loadData() async {
-    final profile = await _authService.getUserProfile(widget.uid);
-    final totalMinutes = await _statsService.getTotalMinutes();
-    final goalHours = await _statsService.getGoalHours();
-    final dailyMinutes = await _statsService.getDailyMinutes();
-    final topTracks = await _statsService.getTopTracks();
+    try {
+      final profile = await _authService.getUserProfile(widget.uid);
+      final totalMinutes = await _statsService.getTotalMinutes();
+      final goalHours = await _statsService.getGoalHours();
+      final dailyMinutes = await _statsService.getDailyMinutes();
+      final topTracks = await _statsService.getTopTracks();
 
-    final firstName = (profile?['firstName'] as String?) ?? '';
-    final lastName = (profile?['lastName'] as String?) ?? '';
+      final firstName = (profile?['firstName'] as String?) ?? '';
+      final lastName = (profile?['lastName'] as String?) ?? '';
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    setState(() {
-      _fullName = '$firstName $lastName'.trim().isEmpty ? 'Utilisateur' : '$firstName $lastName';
-      _totalMinutes = totalMinutes;
-      _goalHours = goalHours;
-      _dailyMinutes = dailyMinutes;
-      _topTracks = topTracks;
-      _isLoading = false;
-    });
+      setState(() {
+        _fullName = '$firstName $lastName'.trim().isEmpty ? 'Utilisateur' : '$firstName $lastName';
+        _totalMinutes = totalMinutes;
+        _goalHours = goalHours;
+        _dailyMinutes = dailyMinutes;
+        _topTracks = topTracks;
+        _isLoading = false;
+      });
+    } catch (e) {
+      developer.log('Error loading stats: $e');
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+      });
+      await DialogHelper.showErrorDialog(
+        context,
+        title: 'Erreur',
+        message: 'Erreur lors du chargement des données: $e',
+      );
+    }
   }
 
   Future<void> _updateGoal(int? value) async {

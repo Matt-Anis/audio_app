@@ -3,8 +3,10 @@ import 'package:audio_app/services/audio_catalog_service.dart';
 import 'package:audio_app/services/audio_player_service.dart';
 import 'package:audio_app/services/favorites_service.dart';
 import 'package:audio_app/services/local_stats_service.dart';
+import 'package:audio_app/utils/dialog_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
+import 'dart:developer' as developer;
 
 class PlayerTab extends StatefulWidget {
   final String uid;
@@ -66,33 +68,64 @@ class _PlayerTabState extends State<PlayerTab> {
   }
 
   Future<void> _playTrack(AudioTrack track) async {
-    await _playerService.playTrack(track);
-    await _statsService.recordListening(trackTitle: track.title, minutes: 4);
-    widget.onStatsUpdated();
+    try {
+      await _playerService.playTrack(track);
+      await _statsService.recordListening(trackTitle: track.title, minutes: 4);
+      widget.onStatsUpdated();
 
-    final isFav = await _favoritesService.isFavorite(widget.uid, track.id);
-    if (!mounted) return;
+      final isFav = await _favoritesService.isFavorite(widget.uid, track.id);
+      if (!mounted) return;
 
-    setState(() {
-      _currentTrack = track;
-      _isCurrentFavorite = isFav;
-    });
+      setState(() {
+        _currentTrack = track;
+        _isCurrentFavorite = isFav;
+      });
+      
+      developer.log('Playing track: ${track.title}');
+    } catch (e) {
+      developer.log('Error playing track: $e');
+      if (!mounted) return;
+      await DialogHelper.showErrorDialog(
+        context,
+        title: 'Erreur de lecture',
+        message: 'Impossible de lire la piste: $e',
+      );
+    }
   }
 
   Future<void> _toggleFavorite() async {
     final track = _currentTrack;
     if (track == null) return;
 
-    if (_isCurrentFavorite) {
-      await _favoritesService.removeFavorite(widget.uid, track.id);
-    } else {
-      await _favoritesService.addFavorite(widget.uid, track);
-    }
+    try {
+      if (_isCurrentFavorite) {
+        await _favoritesService.removeFavorite(widget.uid, track.id);
+      } else {
+        await _favoritesService.addFavorite(widget.uid, track);
+      }
 
-    if (!mounted) return;
-    setState(() {
-      _isCurrentFavorite = !_isCurrentFavorite;
-    });
+      if (!mounted) return;
+      setState(() {
+        _isCurrentFavorite = !_isCurrentFavorite;
+      });
+
+      if (!mounted) return;
+      await DialogHelper.showSuccessDialog(
+        context,
+        title: 'Succès',
+        message: _isCurrentFavorite
+            ? 'Ajouté aux favoris'
+            : 'Retiré des favoris',
+      );
+    } catch (e) {
+      developer.log('Error toggling favorite: $e');
+      if (!mounted) return;
+      await DialogHelper.showErrorDialog(
+        context,
+        title: 'Erreur',
+        message: 'Erreur lors de la gestion du favori: $e',
+      );
+    }
   }
 
   @override
