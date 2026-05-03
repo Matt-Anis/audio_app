@@ -5,6 +5,7 @@ import 'package:audio_app/services/biometric_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:just_audio_background/just_audio_background.dart';
 import 'package:audio_service/audio_service.dart';
 import 'dart:developer' as developer;
@@ -124,27 +125,105 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = const ColorScheme.dark(
+      primary: Color(0xFF7FD8FF),
+      secondary: Color(0xFF7FD8FF),
+      surface: Color(0xFF121922),
+      onSurface: Color(0xFFEAF2F8),
+    );
+    final textTheme = GoogleFonts.soraTextTheme(ThemeData.dark().textTheme)
+        .apply(bodyColor: colorScheme.onSurface, displayColor: colorScheme.onSurface);
+
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Audio App',
       theme: ThemeData(
+        useMaterial3: true,
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF121212),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF181818),
-          foregroundColor: Colors.white,
+        colorScheme: colorScheme,
+        scaffoldBackgroundColor: Colors.transparent,
+        textTheme: textTheme,
+        appBarTheme: AppBarTheme(
+          backgroundColor: const Color(0x33121922),
+          foregroundColor: colorScheme.onSurface,
+          elevation: 0,
+          surfaceTintColor: Colors.transparent,
         ),
-        colorScheme: const ColorScheme.dark(
-          primary: Color(0xFF1DB954),
-          secondary: Color(0xFF1DB954),
-          surface: Color(0xFF181818),
+        cardTheme: CardThemeData(
+          color: Colors.white.withOpacity(0.08),
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: BorderSide(color: Colors.white.withOpacity(0.12)),
+          ),
         ),
-        bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-          backgroundColor: Color(0xFF181818),
-          selectedItemColor: Color(0xFF1DB954),
-          unselectedItemColor: Colors.white70,
+        dialogTheme: DialogThemeData(
+          backgroundColor: const Color(0xCC10161D),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: BorderSide(color: Colors.white.withOpacity(0.12)),
+          ),
+          titleTextStyle: textTheme.titleLarge,
+          contentTextStyle: textTheme.bodyMedium?.copyWith(
+            color: colorScheme.onSurface.withOpacity(0.8),
+          ),
+        ),
+        snackBarTheme: SnackBarThemeData(
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: const Color(0xCC0F141A),
+          contentTextStyle: textTheme.bodyMedium,
+          elevation: 0,
+          insetPadding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: Colors.white.withOpacity(0.15)),
+          ),
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: Colors.white.withOpacity(0.08),
+          labelStyle: textTheme.bodySmall?.copyWith(
+            color: colorScheme.onSurface.withOpacity(0.7),
+          ),
+          hintStyle: textTheme.bodySmall?.copyWith(
+            color: colorScheme.onSurface.withOpacity(0.6),
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(color: Colors.white.withOpacity(0.12)),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(color: Colors.white.withOpacity(0.12)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(color: colorScheme.primary.withOpacity(0.7)),
+          ),
+        ),
+        bottomNavigationBarTheme: BottomNavigationBarThemeData(
+          backgroundColor: const Color(0x33121922),
+          selectedItemColor: colorScheme.primary,
+          unselectedItemColor: colorScheme.onSurface.withOpacity(0.6),
+          elevation: 0,
         ),
       ),
+      builder: (context, child) {
+        return DecoratedBox(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color(0xFF0B0F14),
+                Color(0xFF101826),
+                Color(0xFF0C141A),
+              ],
+            ),
+          ),
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
       home: firebaseError == null
           ? const StartupGate()
           : FirebaseSetupError(error: firebaseError!),

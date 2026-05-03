@@ -7,17 +7,21 @@ class DialogHelper {
     required String message,
     VoidCallback? onDismiss,
   }) async {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     await showDialog<void>(
       context: context,
       builder: (BuildContext context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E1E1E),
+        backgroundColor: theme.dialogBackgroundColor,
         title: Text(
           title,
-          style: const TextStyle(color: Colors.white),
+          style: theme.textTheme.titleLarge,
         ),
         content: Text(
           message,
-          style: const TextStyle(color: Colors.white70),
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: colorScheme.onSurface.withOpacity(0.8),
+          ),
         ),
         actions: [
           TextButton(
@@ -25,9 +29,9 @@ class DialogHelper {
               Navigator.of(context).pop();
               onDismiss?.call();
             },
-            child: const Text(
+            child: Text(
               'OK',
-              style: TextStyle(color: Color(0xFF1DB954)),
+              style: TextStyle(color: colorScheme.primary),
             ),
           ),
         ],
@@ -41,23 +45,27 @@ class DialogHelper {
     required String message,
     VoidCallback? onDismiss,
   }) async {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     await showDialog<void>(
       context: context,
       builder: (BuildContext context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E1E1E),
+        backgroundColor: theme.dialogBackgroundColor,
         title: Row(
           children: [
-            const Icon(Icons.check_circle, color: Color(0xFF1DB954)),
+            Icon(Icons.check_circle, color: colorScheme.primary),
             const SizedBox(width: 12),
             Text(
               title,
-              style: const TextStyle(color: Colors.white),
+              style: theme.textTheme.titleLarge,
             ),
           ],
         ),
         content: Text(
           message,
-          style: const TextStyle(color: Colors.white70),
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: colorScheme.onSurface.withOpacity(0.8),
+          ),
         ),
         actions: [
           TextButton(
@@ -65,9 +73,9 @@ class DialogHelper {
               Navigator.of(context).pop();
               onDismiss?.call();
             },
-            child: const Text(
+            child: Text(
               'OK',
-              style: TextStyle(color: Color(0xFF1DB954)),
+              style: TextStyle(color: colorScheme.primary),
             ),
           ),
         ],
@@ -81,23 +89,27 @@ class DialogHelper {
     required String message,
     VoidCallback? onDismiss,
   }) async {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     await showDialog<void>(
       context: context,
       builder: (BuildContext context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E1E1E),
+        backgroundColor: theme.dialogBackgroundColor,
         title: Row(
           children: [
-            const Icon(Icons.info, color: Color(0xFF1DB954)),
+            Icon(Icons.info, color: colorScheme.primary),
             const SizedBox(width: 12),
             Text(
               title,
-              style: const TextStyle(color: Colors.white),
+              style: theme.textTheme.titleLarge,
             ),
           ],
         ),
         content: Text(
           message,
-          style: const TextStyle(color: Colors.white70),
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: colorScheme.onSurface.withOpacity(0.8),
+          ),
         ),
         actions: [
           TextButton(
@@ -105,9 +117,9 @@ class DialogHelper {
               Navigator.of(context).pop();
               onDismiss?.call();
             },
-            child: const Text(
+            child: Text(
               'Fermer',
-              style: TextStyle(color: Color(0xFF1DB954)),
+              style: TextStyle(color: colorScheme.primary),
             ),
           ),
         ],
@@ -122,31 +134,35 @@ class DialogHelper {
     String confirmText = 'Confirmer',
     String cancelText = 'Annuler',
   }) async {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     return showDialog<bool?>(
       context: context,
       builder: (BuildContext context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E1E1E),
+        backgroundColor: theme.dialogBackgroundColor,
         title: Text(
           title,
-          style: const TextStyle(color: Colors.white),
+          style: theme.textTheme.titleLarge,
         ),
         content: Text(
           message,
-          style: const TextStyle(color: Colors.white70),
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: colorScheme.onSurface.withOpacity(0.8),
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
             child: Text(
               cancelText,
-              style: const TextStyle(color: Colors.white70),
+              style: TextStyle(color: colorScheme.onSurface.withOpacity(0.7)),
             ),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
             child: Text(
               confirmText,
-              style: const TextStyle(color: Color(0xFF1DB954)),
+              style: TextStyle(color: colorScheme.primary),
             ),
           ),
         ],
