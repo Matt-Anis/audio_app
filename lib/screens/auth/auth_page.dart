@@ -140,7 +140,7 @@ class _AuthPageState extends State<AuthPage> {
         children: [
           Positioned.fill(
             child: Image.asset(
-              'images.jpg',
+              'assets/images/login-bg.jpg',
               fit: BoxFit.cover,
             ),
           ),
@@ -169,7 +169,7 @@ class _AuthPageState extends State<AuthPage> {
                     Column(
                       children: [
                         SvgPicture.asset(
-                          'icon.svg',
+                          'assets/icons/app-icon.svg',
                           height: 64,
                           width: 64,
                         ),

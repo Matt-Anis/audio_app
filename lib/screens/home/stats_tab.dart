@@ -81,6 +81,7 @@ class _StatsTabState extends State<StatsTab> {
       return const Center(child: CircularProgressIndicator());
     }
 
+    final colorScheme = Theme.of(context).colorScheme;
     final hours = _totalMinutes ~/ 60;
     final minutes = _totalMinutes % 60;
     final goalMinutes = _goalHours * 60;
@@ -94,91 +95,78 @@ class _StatsTabState extends State<StatsTab> {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          RichText(
-            text: TextSpan(
-              style: const TextStyle(fontSize: 22, color: Colors.white),
+          Text.rich(
+            TextSpan(
+              text: 'Bienvenue, ',
+              style: Theme.of(context).textTheme.titleLarge,
               children: [
-                const TextSpan(text: 'Bienvenue, '),
                 TextSpan(
                   text: _fullName,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
                 ),
               ],
             ),
           ),
           const SizedBox(height: 14),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: _cardDecoration(),
+          _GlassCard(
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Temps total ecoute', style: TextStyle(color: Colors.white70)),
+                Text('Temps total ecoute', style: Theme.of(context).textTheme.bodyMedium),
                 Text(
                   '${hours}h ${minutes}m',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 20,
-                  ),
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
                 ),
               ],
             ),
           ),
           const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: _cardDecoration(),
+          _GlassCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Objectif mensuel (heures)',
-                  style: TextStyle(color: Colors.white70),
-                ),
+                Text('Objectif mensuel (heures)', style: Theme.of(context).textTheme.bodyMedium),
                 const SizedBox(height: 8),
-                DropdownButton<int>(
-                  dropdownColor: const Color(0xFF222222),
+                DropdownButtonFormField<int>(
+                  dropdownColor: const Color(0xFF151B24),
                   value: _goalHours,
-                  isExpanded: true,
                   items: List.generate(10, (index) => (index + 1) * 5)
                       .map(
                         (h) => DropdownMenuItem<int>(
                           value: h,
-                          child: Text(
-                            '$h h',
-                            style: const TextStyle(color: Colors.white),
-                          ),
+                          child: Text('$h h'),
                         ),
                       )
                       .toList(),
                   onChanged: _updateGoal,
                 ),
-                const SizedBox(height: 8),
-                LinearProgressIndicator(
-                  value: progress,
-                  minHeight: 10,
-                  backgroundColor: const Color(0xFF3D3D3D),
-                  valueColor: const AlwaysStoppedAnimation(Color(0xFF1DB954)),
+                const SizedBox(height: 10),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(999),
+                  child: LinearProgressIndicator(
+                    value: progress,
+                    minHeight: 10,
+                    backgroundColor: Colors.white.withOpacity(0.08),
+                    valueColor: AlwaysStoppedAnimation(colorScheme.primary),
+                  ),
                 ),
                 const SizedBox(height: 8),
-                Text(
-                  '${(progress * 100).toStringAsFixed(0)}% atteint',
-                  style: const TextStyle(color: Colors.white),
-                ),
+                Text('${(progress * 100).toStringAsFixed(0)}% atteint'),
               ],
             ),
           ),
           const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: _cardDecoration(),
+          _GlassCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Minutes ecoutees par jour (mois actuel)',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 10),
                 _MonthlyBarChart(dailyMinutes: _dailyMinutes),
@@ -186,26 +174,27 @@ class _StatsTabState extends State<StatsTab> {
             ),
           ),
           const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: _cardDecoration(),
+          _GlassCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Morceaux les plus ecoutes',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 8),
                 if (sortedTracks.isEmpty)
-                  const Text('Aucun morceau ecoute pour le moment.', style: TextStyle(color: Colors.white70))
+                  Text(
+                    'Aucun morceau ecoute pour le moment.',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  )
                 else
                   ...sortedTracks.take(5).map(
                     (entry) => ListTile(
                       dense: true,
                       contentPadding: EdgeInsets.zero,
-                      title: Text(entry.key, style: const TextStyle(color: Colors.white)),
-                      trailing: Text('${entry.value} min', style: const TextStyle(color: Colors.white70)),
+                      title: Text(entry.key),
+                      trailing: Text('${entry.value} min'),
                     ),
                   ),
               ],
@@ -215,11 +204,23 @@ class _StatsTabState extends State<StatsTab> {
       ),
     );
   }
+}
 
-  BoxDecoration _cardDecoration() {
-    return BoxDecoration(
-      color: const Color(0xFF1C1C1C),
-      borderRadius: BorderRadius.circular(14),
+class _GlassCard extends StatelessWidget {
+  final Widget child;
+
+  const _GlassCard({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white.withOpacity(0.12)),
+      ),
+      child: child,
     );
   }
 }
@@ -242,6 +243,8 @@ class _MonthlyBarChart extends StatelessWidget {
 
     final maxValue = max(1, values.fold<int>(0, max));
 
+    final colorScheme = Theme.of(context).colorScheme;
+
     return SizedBox(
       height: 170,
       child: ListView.builder(
@@ -249,7 +252,7 @@ class _MonthlyBarChart extends StatelessWidget {
         itemCount: values.length,
         itemBuilder: (context, index) {
           final value = values[index];
-          final barHeight = 10 + ((value / maxValue) * 110);
+          final barHeight = 8 + ((value / maxValue) * 110);
           return Container(
             width: 18,
             margin: const EdgeInsets.only(right: 6),
@@ -259,7 +262,7 @@ class _MonthlyBarChart extends StatelessWidget {
                 Container(
                   height: barHeight,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1DB954),
+                    color: colorScheme.primary,
                     borderRadius: BorderRadius.circular(6),
                   ),
                 ),

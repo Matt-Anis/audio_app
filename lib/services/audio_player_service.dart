@@ -39,9 +39,32 @@ class AudioPlayerService {
     }
   }
 
+  Future<void> stop() async {
+    await _handler?.stop();
+  }
+
+  Future<void> seek(Duration position) async {
+    await _handler?.seek(position);
+  }
+
+  Future<void> seekBy(Duration offset) async {
+    final player = _handler?.player;
+    if (player == null) return;
+    final current = player.position;
+    final next = current + offset;
+    final duration = player.duration ?? Duration.zero;
+    final clamped = Duration(
+      milliseconds: next.inMilliseconds.clamp(0, duration.inMilliseconds),
+    );
+    await player.seek(clamped);
+  }
+
   Future<void> toggleRepeat() async {
-    // This logic needs to be implemented in the AudioPlayerHandler
-    // For now, we'll leave it out to fix the main issue.
+    final player = _handler?.player;
+    if (player == null) return;
+    final current = player.loopMode;
+    final next = current == LoopMode.one ? LoopMode.off : LoopMode.one;
+    await player.setLoopMode(next);
   }
 
   Future<void> dispose() async {

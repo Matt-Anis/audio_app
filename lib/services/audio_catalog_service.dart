@@ -5,72 +5,49 @@ import 'package:http/http.dart' as http;
 
 class AudioCatalogService {
   Future<Map<String, List<AudioTrack>>> fetchTracksByCategory() async {
-    const url = 'https://mp3quran.net/api/v3/reciters?language=eng';
+    const surahUrl = 'https://quran.yousefheiba.com/api/surahs';
+    const reciterName = 'Yasser-Al-Dosari';
 
     try {
-      final response = await http.get(Uri.parse(url));
-      if (response.statusCode != 200) {
-        return _fallbackCatalog();
+      final surahResponse = await http.get(Uri.parse(surahUrl));
+      if (surahResponse.statusCode != 200) {
+        throw Exception('Surah API error: ${surahResponse.statusCode}');
       }
 
-      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
-      final reciters = (decoded['reciters'] as List<dynamic>?) ?? [];
+      final surahList = jsonDecode(surahResponse.body) as List<dynamic>;
+      final result = <String, List<AudioTrack>>{};
 
-      final Map<String, List<AudioTrack>> result = {};
-      for (final reciter in reciters.take(6)) {
-        final reciterMap = reciter as Map<String, dynamic>;
-        final reciterName = (reciterMap['name'] as String?) ?? 'Unknown';
-        final moshaf = (reciterMap['moshaf'] as List<dynamic>?) ?? [];
-        if (moshaf.isEmpty) continue;
+      for (final entry in surahList) {
+        final data = entry as Map<String, dynamic>;
+        final surahId = data['id']?.toString() ?? '';
+        if (surahId.isEmpty) continue;
 
-        final firstMoshaf = moshaf.first as Map<String, dynamic>;
-        final server = (firstMoshaf['server'] as String?) ?? '';
-        final surahListText = (firstMoshaf['surah_list'] as String?) ?? '';
-        if (server.isEmpty || surahListText.isEmpty) continue;
+        final nameEn = (data['name_en'] as String?) ?? 'Surah $surahId';
+        final nameAr = (data['name_ar'] as String?) ?? '';
+        final type = (data['type'] as String?) ?? 'Meccan';
 
-        final normalizedServer = server.endsWith('/') ? server : '$server/';
-        final surahs = surahListText.split(',').map((e) => e.trim()).toList();
+        final title = nameAr.isEmpty ? nameEn : '$nameEn • $nameAr';
+        final audioUrl =
+            'https://quran.yousefheiba.com/api/surahAudio?reciter=$reciterName&id=$surahId';
 
-        final tracks = <AudioTrack>[];
-        for (final surah in surahs.take(8)) {
-          final padded = surah.padLeft(3, '0');
-          tracks.add(
-            AudioTrack(
-              id: '$reciterName-$surah',
-              title: 'Surah $surah',
-              category: reciterName,
-              url: '$normalizedServer$padded.mp3',
-            ),
-          );
-        }
-
-        if (tracks.isNotEmpty) {
-          result[reciterName] = tracks;
-        }
+        result.putIfAbsent(type, () => <AudioTrack>[]).add(
+              AudioTrack(
+                id: 'reciter92-$surahId',
+                title: title,
+                category: type,
+                url: audioUrl,
+              ),
+            );
       }
 
-      return result.isEmpty ? _fallbackCatalog() : result;
-    } catch (_) {
-      return _fallbackCatalog();
+      result.removeWhere((_, value) => value.isEmpty);
+      if (result.isEmpty) {
+        throw Exception('Surah API returned empty list');
+      }
+
+      return result;
+    } catch (e) {
+      rethrow;
     }
-  }
-
-  Map<String, List<AudioTrack>> _fallbackCatalog() {
-    return {
-      'Popular Recitations': [
-        const AudioTrack(
-          id: 'fallback-1',
-          title: 'Sample Track 1',
-          category: 'Popular Recitations',
-          url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
-        ),
-        const AudioTrack(
-          id: 'fallback-2',
-          title: 'Sample Track 2',
-          category: 'Popular Recitations',
-          url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
-        ),
-      ],
-    };
   }
 }

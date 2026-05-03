@@ -31,5 +31,5 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    - images.jpg
-    - icon.svg
+    - assets/images/login-bg.jpg
+    - assets/icons/app-icon.svg

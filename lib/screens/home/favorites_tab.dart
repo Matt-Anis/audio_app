@@ -64,25 +64,29 @@ class _FavoritesTabState extends State<FavoritesTab> {
           return Center(
             child: Padding(
               padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.error_outline, size: 64, color: Colors.redAccent),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Erreur: ${snapshot.error}',
-                    style: const TextStyle(color: Colors.white),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () => setState(() {}),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1DB954),
+              child: Container(
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: Colors.white.withOpacity(0.12)),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.error_outline, size: 56, color: Colors.redAccent),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Erreur: ${snapshot.error}',
+                      textAlign: TextAlign.center,
                     ),
-                    child: const Text('Réessayer'),
-                  ),
-                ],
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () => setState(() {}),
+                      child: const Text('Réessayer'),
+                    ),
+                  ],
+                ),
               ),
             ),
           );
@@ -90,25 +94,36 @@ class _FavoritesTabState extends State<FavoritesTab> {
 
         final favorites = snapshot.data ?? [];
         if (favorites.isEmpty) {
-          return const Center(
-            child: Text('Aucun favori pour le moment.', style: TextStyle(color: Colors.white70)),
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.favorite_border, size: 56, color: Theme.of(context).colorScheme.primary),
+                  const SizedBox(height: 12),
+                  const Text('Aucun favori pour le moment.'),
+                ],
+              ),
+            ),
           );
         }
 
         return ListView.separated(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(16),
           itemCount: favorites.length,
           separatorBuilder: (_, _) => const SizedBox(height: 8),
           itemBuilder: (context, index) {
             final track = favorites[index];
             return Container(
               decoration: BoxDecoration(
-                color: const Color(0xFF1C1C1C),
-                borderRadius: BorderRadius.circular(12),
+                color: Colors.white.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.white.withOpacity(0.12)),
               ),
               child: ListTile(
-                title: Text(track.title, style: const TextStyle(color: Colors.white)),
-                subtitle: Text(track.category, style: const TextStyle(color: Colors.white70)),
+                title: Text(track.title),
+                subtitle: Text(track.category),
                 trailing: IconButton(
                   onPressed: () => _deleteFavorite(track.id),
                   icon: const Icon(Icons.delete_outline, color: Colors.redAccent),

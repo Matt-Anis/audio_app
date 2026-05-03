@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:audio_app/screens/auth/auth_page.dart';
 import 'package:audio_app/screens/home/home_page.dart';
 import 'package:audio_app/services/auth_service.dart';
@@ -293,7 +295,7 @@ class _StartupGateState extends State<StartupGate> with WidgetsBindingObserver {
         setState(() {
           _loading = false;
           _error =
-              'Biométrique non configuré. Configurez une empreinte digitale dans les paramètres de sécurité pour continuer, ou appuyez sur "Passer".';
+              'Empreinte introuvable. Configurez votre empreinte digitale pour continuer.';
         });
         return;
       }
@@ -314,7 +316,7 @@ class _StartupGateState extends State<StartupGate> with WidgetsBindingObserver {
         if (!mounted) return;
         setState(() {
           _loading = false;
-          _error = 'Authentification échouée. Veuillez réessayer ou appuyez sur "Passer".';
+          _error = 'Authentification échouée. Réessayez pour continuer.';
         });
       }
     } catch (e) {
@@ -338,7 +340,7 @@ class _StartupGateState extends State<StartupGate> with WidgetsBindingObserver {
             mainAxisSize: MainAxisSize.min,
             children: [
               SvgPicture.asset(
-                'icon.svg',
+                'assets/icons/app-icon.svg',
                 height: 120,
                 width: 120,
               ),
@@ -361,41 +363,57 @@ class _StartupGateState extends State<StartupGate> with WidgetsBindingObserver {
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.fingerprint, size: 64, color: Color(0xFF1DB954)),
-                const SizedBox(height: 12),
-                Text(
-                  _error!,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: Colors.white),
-                ),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: _transitioning ? null : () {
-                    setState(() {
-                      _transitioning = true;
-                    });
-                    Future.microtask(() {
-                      if (mounted) {
-                        setState(() {
-                          _loading = false;
-                          _error = null;
-                        });
-                      }
-                    });
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1DB954),
-                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(24),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+                child: Container(
+                  padding: const EdgeInsets.all(22),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: Colors.white.withOpacity(0.16)),
                   ),
-                  child: const Text(
-                    'Passer',
-                    style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.fingerprint, size: 56, color: Color(0xFF7FD8FF)),
+                      const SizedBox(height: 12),
+                      Text(
+                        _error!,
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: _transitioning
+                            ? null
+                            : () {
+                                setState(() {
+                                  _transitioning = true;
+                                });
+                                Future.microtask(() {
+                                  if (mounted) {
+                                    setState(() {
+                                      _loading = false;
+                                      _error = null;
+                                    });
+                                  }
+                                });
+                              },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF7FD8FF),
+                          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                        ),
+                        child: const Text(
+                          'Passer',
+                          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
+              ),
             ),
           ),
         ),

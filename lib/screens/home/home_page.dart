@@ -62,7 +62,7 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       appBar: AppBar(
         title: SvgPicture.asset(
-          'icon.svg',
+          'assets/icons/app-icon.svg',
           height: 28,
           width: 28,
         ),
