@@ -7,6 +7,7 @@ import 'package:audio_app/services/favorites_service.dart';
 import 'package:audio_app/services/local_stats_service.dart';
 import 'package:audio_app/utils/dialog_helper.dart';
 import 'package:flutter/material.dart';
+import 'package:audio_service/audio_service.dart';
 import 'package:just_audio/just_audio.dart';
 import 'dart:developer' as developer;
 
@@ -39,11 +40,14 @@ class _PlayerTabState extends State<PlayerTab> {
 
   AudioTrack? _currentTrack;
   bool _isCurrentFavorite = false;
+  StreamSubscription<MediaItem?>? _mediaItemSub;
 
   @override
   void initState() {
     super.initState();
     _loadCatalog();
+    _syncFromMediaItem(_playerService.currentMediaItem);
+    _mediaItemSub = _playerService.mediaItemStream.listen(_syncFromMediaItem);
   }
 
   Future<void> _loadCatalog({String? query}) async {
@@ -143,8 +147,36 @@ class _PlayerTabState extends State<PlayerTab> {
   void dispose() {
     _searchTimer?.cancel();
     _searchController.dispose();
+    _mediaItemSub?.cancel();
     _playerService.dispose();
     super.dispose();
+  }
+
+  Future<void> _syncFromMediaItem(MediaItem? item) async {
+    if (!mounted) return;
+    if (item == null) {
+      setState(() {
+        _currentTrack = null;
+        _isCurrentFavorite = false;
+      });
+      return;
+    }
+
+    final extras = item.extras ?? const {};
+    final track = AudioTrack(
+      id: item.id,
+      title: item.title,
+      category: item.album ?? 'Artiste inconnu',
+      url: (extras['url'] as String?) ?? '',
+      artwork: (extras['artwork'] as String?) ?? item.artUri?.toString(),
+    );
+
+    final isFav = await _favoritesService.isFavorite(widget.uid, track.id);
+    if (!mounted) return;
+    setState(() {
+      _currentTrack = track;
+      _isCurrentFavorite = isFav;
+    });
   }
 
   void _onSearchChanged(String value) {
@@ -276,17 +308,14 @@ class _PlayerTabState extends State<PlayerTab> {
                     ButtonSegment(
                       value: _LibraryViewMode.titles,
                       label: Text('Titres'),
-                      icon: Icon(Icons.list_alt),
                     ),
                     ButtonSegment(
                       value: _LibraryViewMode.covers,
                       label: Text('Covers'),
-                      icon: Icon(Icons.grid_view),
                     ),
                     ButtonSegment(
                       value: _LibraryViewMode.authors,
                       label: Text('Artistes'),
-                      icon: Icon(Icons.person),
                     ),
                   ],
                   selected: {_viewMode},
@@ -464,10 +493,6 @@ class _MiniPlayerBar extends StatelessWidget {
                     ),
                   );
                 },
-              ),
-              IconButton(
-                onPressed: playerService.stop,
-                icon: Icon(Icons.stop_circle, color: colorScheme.onSurface),
               ),
               StreamBuilder<PlayerState>(
                 stream: playerService.player?.playerStateStream ?? const Stream.empty(),
