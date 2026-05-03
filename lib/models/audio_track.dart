@@ -3,12 +3,14 @@ class AudioTrack {
   final String title;
   final String category;
   final String url;
+  final String? artwork;
 
   const AudioTrack({
     required this.id,
     required this.title,
     required this.category,
     required this.url,
+    this.artwork,
   });
 
   Map<String, dynamic> toMap() {
@@ -17,6 +19,7 @@ class AudioTrack {
       'title': title,
       'category': category,
       'url': url,
+      'artwork': artwork,
     };
   }
 
@@ -26,6 +29,7 @@ class AudioTrack {
       title: map['title'] as String,
       category: map['category'] as String,
       url: map['url'] as String,
+      artwork: map['artwork'] as String?,
     );
   }
 }

@@ -176,7 +176,7 @@ class _PlayerTabState extends State<PlayerTab> {
                   ),
                 ),
                 StreamBuilder<LoopMode>(
-                  stream: _playerService.player.loopModeStream,
+                  stream: _playerService.player?.loopModeStream ?? const Stream.empty(),
                   builder: (context, snapshot) {
                     final repeatOne = snapshot.data == LoopMode.one;
                     return IconButton(
@@ -189,7 +189,7 @@ class _PlayerTabState extends State<PlayerTab> {
                   },
                 ),
                 StreamBuilder<PlayerState>(
-                  stream: _playerService.player.playerStateStream,
+                  stream: _playerService.player?.playerStateStream ?? const Stream.empty(),
                   builder: (context, snapshot) {
                     final playing = snapshot.data?.playing ?? false;
                     return IconButton(

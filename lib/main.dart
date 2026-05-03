@@ -6,64 +6,111 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:just_audio_background/just_audio_background.dart';
-import 'package:audio_session/audio_session.dart';
+import 'package:audio_service/audio_service.dart';
 import 'dart:developer' as developer;
 import 'dart:async';
 
-// Background audio handler for just_audio_background plugin
-Future<void> _audioBackgroundMessageHandler(AudioSession session) async {
-  developer.log('_audioBackgroundMessageHandler: Audio session started');
+import 'package:audio_app/services/audio_player_service.dart';
+import 'package:audio_service/audio_service.dart';
+import 'package:just_audio/just_audio.dart';
+// ... existing code
+// Audio handler for background playback
+class AudioPlayerHandler extends BaseAudioHandler with SeekHandler {
+  final _player = AudioPlayer();
+
+  // Public getter to access the player
+  AudioPlayer get player => _player;
+
+  AudioPlayerHandler() {
+    // Listen to player state changes.
+    _player.playbackEventStream.map(_transformEvent).pipe(playbackState);
+  }
+
+  // Transform a just_audio event into an audio_service state.
+  PlaybackState _transformEvent(PlaybackEvent event) {
+    return PlaybackState(
+      controls: [
+        MediaControl.rewind,
+        if (_player.playing) MediaControl.pause else MediaControl.play,
+        MediaControl.stop,
+        MediaControl.fastForward,
+      ],
+      systemActions: const {
+        MediaAction.seek,
+        MediaAction.seekForward,
+        MediaAction.seekBackward,
+      },
+      androidCompactActionIndices: const [0, 1, 3],
+      processingState: const {
+        ProcessingState.idle: AudioProcessingState.idle,
+        ProcessingState.loading: AudioProcessingState.loading,
+        ProcessingState.buffering: AudioProcessingState.buffering,
+        ProcessingState.ready: AudioProcessingState.ready,
+        ProcessingState.completed: AudioProcessingState.completed,
+      }[_player.processingState] ?? AudioProcessingState.idle,
+      playing: _player.playing,
+      updatePosition: _player.position,
+      bufferedPosition: _player.bufferedPosition,
+      speed: _player.speed,
+      queueIndex: event.currentIndex,
+    );
+  }
+
+  @override
+  Future<void> play() => _player.play();
+
+  @override
+  Future<void> pause() => _player.pause();
+
+  @override
+  Future<void> seek(Duration position) => _player.seek(position);
+
+  @override
+  Future<void> stop() async {
+    await _player.stop();
+    await playbackState.firstWhere((state) => state.processingState == AudioProcessingState.idle);
+  }
+
+  @override
+  Future<void> setAudioSource(AudioSource source) async {
+    await _player.setAudioSource(source);
+  }
+
+  @override
+  Future<void> updateQueue(List<MediaItem> queue) async {
+    // This is where you would update the queue if you have playlist functionality
+    mediaItem.add(queue.first);
+  }
 }
+
+AudioPlayerHandler? _audioHandler;
+
+// Public getter for audio handler
+AudioPlayerHandler? getAudioHandler() => _audioHandler;
 
 Future<void> main() async {
   developer.log('main: Starting app initialization');
   WidgetsFlutterBinding.ensureInitialized();
   developer.log('main: WidgetsFlutterBinding initialized');
 
-  // Configure audio session
-  try {
-    developer.log('main: Configuring audio session...');
-    final session = await AudioSession.instance;
-    await session.configure(const AudioSessionConfiguration.music());
-    developer.log('main: Audio session configured successfully');
-  } catch (e) {
-    developer.log('main: Audio session configuration error: $e');
-  }
+  // Initialize the audio handler
+  _audioHandler = await AudioService.init(
+    builder: () => AudioPlayerHandler(),
+    config: const AudioServiceConfig(
+      androidNotificationChannelId: 'com.example.audio_app.channel.audio',
+      androidNotificationChannelName: 'Audio playback',
+      androidNotificationOngoing: true,
+    ),
+  );
 
   String? firebaseError;
   try {
     developer.log('main: Initializing Firebase...');
-    await Firebase.initializeApp().timeout(
-      const Duration(seconds: 15),
-      onTimeout: () {
-        developer.log('main: Firebase.initializeApp() timed out after 15 seconds');
-        throw TimeoutException('Firebase initialization timeout');
-      },
-    );
+    await Firebase.initializeApp();
     developer.log('main: Firebase initialized successfully');
   } catch (e) {
     firebaseError = e.toString();
     developer.log('main: Firebase initialization error: $firebaseError');
-  }
-
-  try {
-    developer.log('main: Initializing JustAudioBackground...');
-    await JustAudioBackground.init(
-      androidNotificationChannelId: 'audio_app.channel.audio',
-      androidNotificationChannelName: 'Audio playback',
-      androidNotificationOngoing: true,
-      onAudioBackgroundMessageReceived: _audioBackgroundMessageHandler,
-    ).timeout(
-      const Duration(seconds: 15),
-      onTimeout: () {
-        developer.log('main: JustAudioBackground.init() timed out after 15 seconds');
-        throw TimeoutException('JustAudioBackground initialization timeout');
-      },
-    );
-    developer.log('main: JustAudioBackground initialized successfully');
-  } catch (e) {
-    developer.log('main: JustAudioBackground initialization error: $e');
-    // Don't crash the app, but log the error
   }
 
   developer.log('main: About to run app');
