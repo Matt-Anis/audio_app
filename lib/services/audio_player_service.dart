@@ -13,19 +13,20 @@ class AudioPlayerService {
   AudioPlayer? get player => _handler?.player;
 
   // Stream for playback state changes
-  Stream<PlaybackState> get playbackStateStream =>
-      _handler?.playbackState.stream ?? const Stream.empty();
+  Stream<PlaybackState> get playbackStateStream async* {
+    final handler = _handler ?? await ensureAudioHandler();
+    yield* handler.playbackState.stream;
+  }
 
-    Stream<MediaItem?> get mediaItemStream =>
-      _handler?.mediaItem.stream ?? const Stream.empty();
+  Stream<MediaItem?> get mediaItemStream async* {
+    final handler = _handler ?? await ensureAudioHandler();
+    yield* handler.mediaItem.stream;
+  }
 
-    MediaItem? get currentMediaItem => _handler?.mediaItem.value;
+  MediaItem? get currentMediaItem => _handler?.mediaItem.value;
 
   Future<void> playTrack(AudioTrack track) async {
-    final handler = _handler;
-    if (handler == null) {
-      throw StateError('Audio handler is not initialized');
-    }
+    final handler = _handler ?? await ensureAudioHandler();
 
     final source = AudioSource.uri(
       Uri.parse(track.url),
@@ -42,8 +43,7 @@ class AudioPlayerService {
   }
 
   Future<void> togglePlayPause() async {
-    final handler = _handler;
-    if (handler == null) return;
+    final handler = _handler ?? await ensureAudioHandler();
 
     final playing = handler.player.playing;
     if (playing) {

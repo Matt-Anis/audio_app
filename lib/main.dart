@@ -9,6 +9,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:just_audio_background/just_audio_background.dart';
 import 'package:audio_service/audio_service.dart';
 import 'dart:developer' as developer;
 import 'dart:async';
@@ -79,9 +80,31 @@ class AudioPlayerHandler extends BaseAudioHandler with SeekHandler {
 }
 
 AudioPlayerHandler? _audioHandler;
+Future<AudioPlayerHandler>? _audioHandlerInit;
 
 // Public getter for audio handler
 AudioPlayerHandler? getAudioHandler() => _audioHandler;
+
+Future<AudioPlayerHandler> ensureAudioHandler() {
+  final existing = _audioHandler;
+  if (existing != null) {
+    return Future.value(existing);
+  }
+
+  _audioHandlerInit ??= AudioService.init(
+    builder: () => AudioPlayerHandler(),
+    config: const AudioServiceConfig(
+      androidNotificationChannelId: 'com.example.audio_app.channel.audio',
+      androidNotificationChannelName: 'Audio playback',
+      androidNotificationOngoing: true,
+    ),
+  ).then((handler) {
+    _audioHandler = handler;
+    return handler;
+  });
+
+  return _audioHandlerInit!;
+}
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -119,14 +142,7 @@ class _AppBootstrapState extends State<AppBootstrap> {
     }
 
     try {
-      _audioHandler = await AudioService.init(
-        builder: () => AudioPlayerHandler(),
-        config: const AudioServiceConfig(
-          androidNotificationChannelId: 'com.example.audio_app.channel.audio',
-          androidNotificationChannelName: 'Audio playback',
-          androidNotificationOngoing: true,
-        ),
-      ).timeout(const Duration(seconds: 5));
+      await ensureAudioHandler().timeout(const Duration(seconds: 5));
     } catch (e) {
       developer.log('bootstrap: AudioService init failed: $e');
     }
