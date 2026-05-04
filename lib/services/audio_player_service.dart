@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:audio_app/main.dart';
 import 'package:audio_app/models/audio_track.dart';
 import 'package:just_audio/just_audio.dart';
@@ -14,6 +16,11 @@ class AudioPlayerService {
   Stream<PlaybackState> get playbackStateStream =>
       _handler?.playbackState.stream ?? const Stream.empty();
 
+    Stream<MediaItem?> get mediaItemStream =>
+      _handler?.mediaItem.stream ?? const Stream.empty();
+
+    MediaItem? get currentMediaItem => _handler?.mediaItem.value;
+
   Future<void> playTrack(AudioTrack track) async {
     final handler = _handler;
     if (handler == null) {
@@ -22,12 +29,7 @@ class AudioPlayerService {
 
     final source = AudioSource.uri(
       Uri.parse(track.url),
-      tag: MediaItem(
-        id: track.id,
-        title: track.title,
-        album: track.category,
-        artUri: track.artwork != null ? Uri.parse(track.artwork!) : null,
-      ),
+      tag: mediaItem,
     );
 
     await handler.player.setAudioSource(source);
