@@ -84,32 +84,92 @@ AudioPlayerHandler? _audioHandler;
 AudioPlayerHandler? getAudioHandler() => _audioHandler;
 
 Future<void> main() async {
-  developer.log('main: Starting app initialization');
   WidgetsFlutterBinding.ensureInitialized();
-  developer.log('main: WidgetsFlutterBinding initialized');
+  runApp(const AppBootstrap());
+}
 
-  // Initialize the audio handler
-  _audioHandler = await AudioService.init(
-    builder: () => AudioPlayerHandler(),
-    config: const AudioServiceConfig(
-      androidNotificationChannelId: 'com.example.audio_app.channel.audio',
-      androidNotificationChannelName: 'Audio playback',
-      androidNotificationOngoing: true,
-    ),
-  );
+class AppBootstrap extends StatefulWidget {
+  const AppBootstrap({super.key});
 
-  String? firebaseError;
-  try {
-    developer.log('main: Initializing Firebase...');
-    await Firebase.initializeApp();
-    developer.log('main: Firebase initialized successfully');
-  } catch (e) {
-    firebaseError = e.toString();
-    developer.log('main: Firebase initialization error: $firebaseError');
+  @override
+  State<AppBootstrap> createState() => _AppBootstrapState();
+}
+
+class _AppBootstrapState extends State<AppBootstrap> {
+  bool _ready = false;
+  String? _firebaseError;
+
+  @override
+  void initState() {
+    super.initState();
+    _initialize();
   }
 
-  developer.log('main: About to run app');
-  runApp(MainApp(firebaseError: firebaseError));
+  Future<void> _initialize() async {
+    developer.log('bootstrap: starting');
+    try {
+      await JustAudioBackground.init(
+        androidNotificationChannelId: 'com.example.audio_app.channel.audio',
+        androidNotificationChannelName: 'Audio playback',
+        androidNotificationOngoing: true,
+        androidShowNotificationBadge: false,
+      ).timeout(const Duration(seconds: 5));
+    } catch (e) {
+      developer.log('bootstrap: JustAudioBackground init failed: $e');
+    }
+
+    try {
+      _audioHandler = await AudioService.init(
+        builder: () => AudioPlayerHandler(),
+        config: const AudioServiceConfig(
+          androidNotificationChannelId: 'com.example.audio_app.channel.audio',
+          androidNotificationChannelName: 'Audio playback',
+          androidNotificationOngoing: true,
+        ),
+      ).timeout(const Duration(seconds: 5));
+    } catch (e) {
+      developer.log('bootstrap: AudioService init failed: $e');
+    }
+
+    try {
+      await Firebase.initializeApp().timeout(const Duration(seconds: 5));
+    } catch (e) {
+      _firebaseError = e.toString();
+      developer.log('bootstrap: Firebase init failed: $_firebaseError');
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _ready = true;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_ready) {
+      return MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          body: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SvgPicture.asset(
+                  'assets/icons/app-icon.svg',
+                  height: 120,
+                  width: 120,
+                ),
+                const SizedBox(height: 18),
+                const Text('biPi'),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return MainApp(firebaseError: _firebaseError);
+  }
 }
 
 class MainApp extends StatelessWidget {
