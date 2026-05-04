@@ -9,13 +9,9 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:just_audio_background/just_audio_background.dart';
 import 'package:audio_service/audio_service.dart';
 import 'dart:developer' as developer;
 import 'dart:async';
-
-import 'package:audio_app/services/audio_player_service.dart';
-import 'package:audio_service/audio_service.dart';
 import 'package:just_audio/just_audio.dart';
 // ... existing code
 // Audio handler for background playback
@@ -73,11 +69,6 @@ class AudioPlayerHandler extends BaseAudioHandler with SeekHandler {
   Future<void> stop() async {
     await _player.stop();
     await playbackState.firstWhere((state) => state.processingState == AudioProcessingState.idle);
-  }
-
-  @override
-  Future<void> setAudioSource(AudioSource source) async {
-    await _player.setAudioSource(source);
   }
 
   @override

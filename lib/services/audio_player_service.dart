@@ -1,7 +1,6 @@
 import 'package:audio_app/main.dart';
 import 'package:audio_app/models/audio_track.dart';
 import 'package:just_audio/just_audio.dart';
-import 'package:just_audio_background/just_audio_background.dart';
 import 'package:audio_service/audio_service.dart';
 
 class AudioPlayerService {
@@ -13,9 +12,14 @@ class AudioPlayerService {
 
   // Stream for playback state changes
   Stream<PlaybackState> get playbackStateStream =>
-      _handler!.playbackState.stream;
+      _handler?.playbackState.stream ?? const Stream.empty();
 
   Future<void> playTrack(AudioTrack track) async {
+    final handler = _handler;
+    if (handler == null) {
+      throw StateError('Audio handler is not initialized');
+    }
+
     final source = AudioSource.uri(
       Uri.parse(track.url),
       tag: MediaItem(
@@ -25,26 +29,29 @@ class AudioPlayerService {
         artUri: track.artwork != null ? Uri.parse(track.artwork!) : null,
       ),
     );
-    // Use the handler to set the audio source and play
-    await _handler?.setAudioSource(source);
-    await _handler?.play();
+
+    await handler.player.setAudioSource(source);
+    await handler.player.play();
   }
 
   Future<void> togglePlayPause() async {
-    final playing = _handler?.playbackState.value.playing ?? false;
+    final handler = _handler;
+    if (handler == null) return;
+
+    final playing = handler.player.playing;
     if (playing) {
-      await _handler?.pause();
+      await handler.player.pause();
     } else {
-      await _handler?.play();
+      await handler.player.play();
     }
   }
 
   Future<void> stop() async {
-    await _handler?.stop();
+    await _handler?.player.stop();
   }
 
   Future<void> seek(Duration position) async {
-    await _handler?.seek(position);
+    await _handler?.player.seek(position);
   }
 
   Future<void> seekBy(Duration offset) async {
