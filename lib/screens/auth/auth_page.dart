@@ -18,6 +18,7 @@ class _AuthPageState extends State<AuthPage> {
 
   bool _isLogin = true;
   bool _isLoading = false;
+  bool _isPasswordHidden = true;
 
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -263,8 +264,26 @@ class _AuthPageState extends State<AuthPage> {
                                 const SizedBox(height: 12),
                                 TextFormField(
                                   controller: _passwordController,
-                                  obscureText: true,
-                                  decoration: _inputDecoration('Mot de passe'),
+                                  obscureText: _isPasswordHidden,
+                                  decoration: _inputDecoration(
+                                    'Mot de passe',
+                                    suffixIcon: IconButton(
+                                      onPressed: () {
+                                        setState(() {
+                                          _isPasswordHidden = !_isPasswordHidden;
+                                        });
+                                      },
+                                      tooltip: _isPasswordHidden
+                                          ? 'Afficher le mot de passe'
+                                          : 'Masquer le mot de passe',
+                                      icon: Icon(
+                                        _isPasswordHidden
+                                            ? Icons.visibility_off_outlined
+                                            : Icons.visibility_outlined,
+                                      ),
+                                      color: colorScheme.onSurface.withOpacity(0.7),
+                                    ),
+                                  ),
                                   validator: (value) {
                                     if (value == null || value.trim().isEmpty) {
                                       return 'Mot de passe obligatoire';
@@ -329,9 +348,10 @@ class _AuthPageState extends State<AuthPage> {
     );
   }
 
-  InputDecoration _inputDecoration(String label) {
+  InputDecoration _inputDecoration(String label, {Widget? suffixIcon}) {
     return InputDecoration(
       labelText: label,
+      suffixIcon: suffixIcon,
     );
   }
 }
