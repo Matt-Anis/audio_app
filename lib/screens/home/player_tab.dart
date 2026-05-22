@@ -80,6 +80,12 @@ class _PlayerTabState extends State<PlayerTab> {
 
   Future<void> _playTrack(AudioTrack track) async {
     try {
+      if (mounted) {
+        setState(() {
+          _currentTrack = track;
+        });
+      }
+
       await _playerService.playTrack(track);
       await _statsService.recordListening(trackTitle: track.title, minutes: 4);
       widget.onStatsUpdated();

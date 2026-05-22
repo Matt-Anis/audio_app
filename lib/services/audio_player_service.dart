@@ -20,17 +20,7 @@ class AudioPlayerService {
       throw StateError('Audio handler is not initialized');
     }
 
-    final source = AudioSource.uri(
-      Uri.parse(track.url),
-      tag: MediaItem(
-        id: track.id,
-        title: track.title,
-        album: track.category,
-        artUri: track.artwork != null ? Uri.parse(track.artwork!) : null,
-      ),
-    );
-
-    await handler.player.setAudioSource(source);
+    await handler.playTrack(track);
     await handler.player.play();
   }
 

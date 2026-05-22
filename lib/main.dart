@@ -1,7 +1,9 @@
 import 'dart:ui';
+import 'dart:io';
 
 import 'package:audio_app/screens/auth/auth_page.dart';
 import 'package:audio_app/screens/home/home_page.dart';
+import 'package:audio_app/models/audio_track.dart';
 import 'package:audio_app/services/auth_service.dart';
 import 'package:audio_app/services/biometric_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -10,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:audio_service/audio_service.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'dart:developer' as developer;
 import 'dart:async';
 import 'package:just_audio/just_audio.dart';
@@ -24,6 +27,24 @@ class AudioPlayerHandler extends BaseAudioHandler with SeekHandler {
   AudioPlayerHandler() {
     // Listen to player state changes.
     _player.playbackEventStream.map(_transformEvent).pipe(playbackState);
+  }
+
+  Future<void> playTrack(AudioTrack track) async {
+    final item = MediaItem(
+      id: track.id,
+      title: track.title,
+      album: track.category,
+      artUri: track.artwork != null ? Uri.parse(track.artwork!) : null,
+    );
+
+    mediaItem.add(item);
+
+    await _player.setAudioSource(
+      AudioSource.uri(
+        Uri.parse(track.url),
+        tag: item,
+      ),
+    );
   }
 
   // Transform a just_audio event into an audio_service state.
@@ -88,6 +109,10 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   developer.log('main: WidgetsFlutterBinding initialized');
 
+  if (Platform.isAndroid) {
+    await Permission.notification.request();
+  }
+
   // Initialize the audio handler
   _audioHandler = await AudioService.init(
     builder: () => AudioPlayerHandler(),
@@ -100,7 +125,7 @@ Future<void> main() async {
 
   String? firebaseError;
   try {
-    developer.log('main: Initializing Firebase...');
+    developer.log('main: ng Firebase...');
     await Firebase.initializeApp();
     developer.log('main: Firebase initialized successfully');
   } catch (e) {
